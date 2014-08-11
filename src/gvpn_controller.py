@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from ipoplib import *
+import threading
 
 class GvpnUdpServer(UdpServer):
     def __init__(self, user, password, host, ip4):
@@ -243,11 +244,39 @@ class GvpnUdpServer(UdpServer):
             else:
                 logging.error("Unknown type socket")
                 sys.exit()
+
+class Polling():
+    def run(self):
+        while True:
+            time.sleep(1)
+            a = subprocess.Popen(["ifconfig", CONFIG["bridge_name"]],\
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            a.wait()
+            if a.returncode: 
+                logging.debug("bridge {0} not boot up".format(CONFIG["bridge_name"]))
+                continue
+            else:
+                b = a.stdout.read()
+                if "UP" in b:
+                    c = b.split("inet addr:")
+                    d = c[1].split(" ")
+                    CONFIG["bridge_ip"] = d[0]
+                    logging.debug("bridge IP is {0}".format(CONFIG["bridge_ip"]))
+                    a = subprocess.call(["route", "del", "-net", "172.16.3.0", "netmask", "255.255.255.0", "dev", "ipop"])
+                    continue
+                else:
+                    logging.debug("bridge {0} not boot up".format(CONFIG["bridge_name"]))
+                    continue
     
 def main():
     parse_config()
     server = GvpnUdpServer(CONFIG["xmpp_username"], CONFIG["xmpp_password"],
                        CONFIG["xmpp_host"], CONFIG["ip4"])
+
+    polling = Polling()
+    t = threading.Thread(target=polling.run)
+    t.start()
+
     last_time = time.time()
     while True:
         server.serve()
@@ -256,6 +285,7 @@ def main():
             server.trim_connections()
             do_get_state(server.sock)
             last_time = time.time()
+
 
 if __name__ == "__main__":
     main()

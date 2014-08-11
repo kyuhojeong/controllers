@@ -10,6 +10,7 @@ import os
 import random
 import select
 import socket
+import subprocess
 import sys
 from threading import Timer
 import time
@@ -49,7 +50,9 @@ CONFIG = {
     "multihop_ihc": 3, #Multihop initial hop count
     "multihop_hl": 10, #Multihop maximum hop count limit
     "multihop_tl": 1,  # Multihop time limit (second)
-    "multihop_sr": True # Multihop source route
+    "multihop_sr": True, # Multihop source route
+    "bridge_ip" : "255,255,255,255",
+    "bridge_name" : "br100"
 }
 
 IP_MAP = {}
@@ -343,8 +346,9 @@ class UdpServer(object):
         ip4 = ip4_b2a(data[72:76])
         if ip4 in self.arp_table:
             if self.arp_table[ip4]["local"]:
-                logging.debug("OS arp cache not yet evicted {0}. discarding"
-                              " packet".format(ip4))
+                logging.debug("Packet is not in local. OS arp cache not yet evicted {0}. discarding"
+                              "packet. Also discarding IPOP arp entry".format(ip4))
+                del self.arp_table[ip4]
                 return
             make_remote_call(self.cc_sock,dest_addr=self.arp_table[ip4]["ip6"],\
               dest_port=CONFIG["icc_port"], m_type=tincan_packet, 
@@ -412,6 +416,22 @@ class UdpServer(object):
                 msg += mac_a2b(self.state["_mac"]) 
                 msg += data[14:]
                 send_packet(self.sock, msg)
+            else:
+                arp = make_arp(src_mac=mac_a2b(self.state["_mac"]), \
+                  op="\x01", sender_ip4=ip4_a2b(self.state["_ip4"]),\
+                  target_ip4=ip4_a2b(data[32:36]))
+                send_packet(self.sock, arp)
+
+                # Not found, broadcast ARP request message
+                ip4 = ip4_b2a(data[32:36])
+                logging.debug("Target({0}) no longer existst".format(ip4))
+                for k, v in self.peers.iteritems():
+                    if v["status"] == "online":
+                        logging.debug("Send arp_request({0}) msg to {1}".format(ip4,\
+                                      v["ip6"]))
+                        make_remote_call(sock=self.cc_sock, dest_addr=v["ip6"],\
+                          dest_port=CONFIG["icc_port"], m_type=tincan_control,\
+                          payload=None, msg_type="arp_request", target_ip4=ip4)
 
     def update_farpeers(self, key, hop_count, via):
         if not key in self.far_peers:
