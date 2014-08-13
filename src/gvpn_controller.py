@@ -259,6 +259,8 @@ class Polling():
                 b = a.stdout.read()
                 if "UP" in b:
                     c = b.split("inet addr:")
+                    if len(c) < 2: 
+                        continue
                     d = c[1].split(" ")
                     CONFIG["bridge_ip"] = d[0]
                     logging.debug("bridge IP is {0}".format(CONFIG["bridge_ip"]))

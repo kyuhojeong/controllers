@@ -419,7 +419,7 @@ class UdpServer(object):
             else:
                 arp = make_arp(src_mac=mac_a2b(self.state["_mac"]), \
                   op="\x01", sender_ip4=ip4_a2b(self.state["_ip4"]),\
-                  target_ip4=ip4_a2b(data[32:36]))
+                  target_ip4=ip4_b2a(data[32:36]))
                 send_packet(self.sock, arp)
 
                 # Not found, broadcast ARP request message
