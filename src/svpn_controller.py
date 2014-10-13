@@ -102,6 +102,12 @@ class SvpnUdpServer(UdpServer):
                         ip4 = gen_ip4(msg["uid"],self.ip_map,self.state["_ip4"])
                         self.create_connection(msg["uid"], fpr, 1,\
                                                CONFIG["sec"], cas, ip4)
+                    elif msg_type == "xmpp_dc":
+                        self.xmpp_dc_cnt += 1
+                        if self.xmpp_dc_cnt > CONFIG["xmpp_dc_cnt"]:
+                            self.xmpp_dc()
+
+                         
                     return
 
                 #|-------------------------------------------------------------|
@@ -158,6 +164,12 @@ class SvpnUdpServer(UdpServer):
                 data, addr = sock.recvfrom(CONFIG["buf_size"])
                 logging.pktdump("Packet received from {0}".format(addr))
                 self.multihop_handle(data)
+
+            elif sock == self.sp_sock and CONFIG["adhoc_bootstrap"]:
+                data, addr = sock.recvfrom(CONFIG["buf_size"])
+                logging.debug("bootstrap msg {0}, {1}".format(data, addr))
+
+            
 
     
 def main():

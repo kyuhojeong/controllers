@@ -75,6 +75,9 @@ null_mac = "\x00\x00\x00\x00\x00\x00"
 logging.addLevelName(5, "PKTDUMP")
 logging.PKTDUMP = 5
 
+friends = {"01ef7bc7494816172d490181d8c8270bd04f066e" : {}}
+super_peers = ["149.165.159.25"]
+
 def pktdump(message, dump=None, *args, **argv):
     hext = ""
     if dump: 
@@ -241,6 +244,7 @@ class UdpServer(object):
         self.peers_ip6 = {}
         self.far_peers = {}
         self.conn_stat = {}
+        self.xmpp_dc_cnt = 0
         if socket.has_ipv6:
             self.sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
             self.sock_svr = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
@@ -250,16 +254,19 @@ class UdpServer(object):
             self.sock_svr = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.sock_svr.bind((CONFIG["localhost"], CONFIG["contr_port"]))
         self.sock.bind(("", 0))
-        self.sock_list = [ self.sock, self.sock_svr ]
+        self.sock_list = [ self.sock, self.sock_svr  ]
 
     def inter_controller_conn(self):
 
         self.cc_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        self.sp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         while True:
             try:
                 time.sleep(3)
                 self.cc_sock.bind((gen_ip6(self.uid), CONFIG["icc_port"]))
+                if CONFIG["super_peer"]:
+                    self.sp_sock.bind(("0.0.0.0", CONFIG["icc_port"]))
             except Exception as e:
                 logging.debug("Wait till ipop tap up")
                 continue
@@ -267,6 +274,7 @@ class UdpServer(object):
                 break
 
         self.sock_list.append(self.cc_sock)
+        self.sock_list.append(self.sp_sock)
 
     def trigger_conn_request(self, peer):
         if "fpr" not in peer and peer["xmpp_time"] < CONFIG["wait_time"] * 8:
@@ -592,7 +600,14 @@ class UdpServer(object):
         return json.dumps({"uid": self.uid, "ipv4": self.ip4,\
                "ipv6": self.ip6, "time": str(datetime.datetime.now()),
                "controller": self.vpn_type, "version": ord(ipop_ver)}) 
-                
+
+    def xmpp_dc(self):
+        make_remote_call(sock=self.sp_sock,\
+          dest_addr=CONFIG["super_peer_ip"], dest_port=CONFIG["icc_port"],\
+          m_type=tincan_control, payload=None, msg_type="arbtrate_req",\
+          uname=CONFIG["xmpp_username"],\
+          remote_uname=CONFIG["test_remote_username"])
+        
 def setup_config(config):
     """Validate config and set default value here. Return ``True`` if config is
     changed.
