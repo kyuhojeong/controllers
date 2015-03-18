@@ -210,12 +210,14 @@ class GvpnUdpServer(UdpServer):
  
                     # For Francois 
                     # --------------------------------------------------------
-                    if data[54:56] == "\x08\x00":
+                    if data[74:76] == "\x08\x00":
                         logging.debug("IPv4 Packet is forwarded")
                         dump(data)
                         msg = data[2:]
                         dest = ("fd50:0dbc:41f2:4a3c:477c:cb36:7fd5:104c", 30000)
                         send_packet_to_remote(self.cc_sock, msg, dest)
+                        continue
+                    else:
                         continue
                     # ----------------------------------------For Francois----
 
