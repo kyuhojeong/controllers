@@ -34,6 +34,10 @@ class GvpnUdpServer(UdpServer):
             make_call(self.sock, m="set_network_ignore_list",\
                              network_ignore_list=CONFIG["network_ignore_list"])
 
+        #self.oi_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        #self.oi_sock.bind((CONFIG["localhost6"], 30001))
+        #self.sock_list.append(self.oi_sock)
+
 
     def ctrl_conn_init(self):
         do_set_logging(self.sock, CONFIG["tincan_logging"])
@@ -146,6 +150,11 @@ class GvpnUdpServer(UdpServer):
                         for stat in stats:
                             total_byte += stat["sent_total_bytes"]
                             total_byte += stat["recv_total_bytes"]
+                        if stats[0]["best_conn"] and stats[0]["local_type"] == "local" and stats[0]["rem_type"] == "local":
+                            flow = {}
+			    flow["local_addr"] = stats[0]["local_addr"].split(":")[0]
+                            flow["rem_addr"] = stats[0]["rem_addr"].split(":")[0]
+                            sock.sendto(json.dumps(flow),("::1", 30001))
                         msg["total_byte"]=total_byte
                         logging.debug("self.peers:{0}".format(self.peers))
                         if not msg["uid"] in self.peers:
