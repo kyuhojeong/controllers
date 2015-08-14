@@ -16,6 +16,7 @@ import struct
 import sys
 import time
 import urllib2
+import keyring
 
 from threading import Timer
 
@@ -243,10 +244,10 @@ def do_set_local_ip(sock, uid, ip4, ip6, ip4_mask, ip6_mask, subnet_mask,
                      subnet_mask=subnet_mask, switchmode=switchmode)
 
 def do_set_remote_ip(sock, uid, ip4, ip6):
-    if (CONFIG["switchmode"] == 1):
-        return make_call(sock, m="set_remote_ip", uid=uid, ip4="127.0.0.1",\
-                         ip6="::1/128")
-    else: 
+    #if (CONFIG["switchmode"] == 1):
+    #    return make_call(sock, m="set_remote_ip", uid=uid, ip4="127.0.0.1",\
+    #                     ip6="::1/128")
+    #else: 
         return make_call(sock, m="set_remote_ip", uid=uid, ip4=ip4, ip6=ip6)
 
 def do_get_state(sock,peer_uid = "",stats = True):
@@ -285,12 +286,14 @@ class UdpServer(object):
 
     def inter_controller_conn(self):
 
-        self.cc_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        #self.cc_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        self.cc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         while True:
             try:
                 time.sleep(3)
-                self.cc_sock.bind((gen_ip6(self.uid), CONFIG["icc_port"]))
+                #self.cc_sock.bind((gen_ip6(self.uid), CONFIG["icc_port"]))
+                self.cc_sock.bind((self.ip4, CONFIG["icc_port"]))
             except Exception as e:
                 logging.debug("Wait till ipop tap up")
                 continue
@@ -626,12 +629,21 @@ def parse_config():
         raise ValueError("At least 'xmpp_username' and 'xmpp_host' must be "
                          "specified in config file or string")
 
-    if "xmpp_password" not in CONFIG:
-        prompt = "\nPassword for %s: " % CONFIG["xmpp_username"]
-        if args.pwdstdout:
-          CONFIG["xmpp_password"] = getpass.getpass(prompt, stream=sys.stdout)
-        else:
-          CONFIG["xmpp_password"] = getpass.getpass(prompt)
+    if "xmpp_password" not in CONFIG and "xmpp_username" not in CONFIG: 
+        if not args.update_config:
+            temp = keyring.get_password("ipop", CONFIG["xmpp_username"])
+        if temp == None and "xmpp_password" not in CONFIG:
+            prompt = "\nPassword for %s: " % CONFIG["xmpp_username"]
+            if args.pwdstdout:
+              CONFIG["xmpp_password"] = getpass.getpass(prompt, stream=sys.stdout)
+            else:
+              CONFIG["xmpp_password"] = getpass.getpass(prompt)
+        if temp != None:
+            CONFIG["xmpp_password"] = temp
+        try:
+            keyring.set_password("ipop", CONFIG["xmpp_username"],CONFIG["xmpp_password"])
+        except:
+            raise RuntimeError("Unable to store password in keyring")
 
     if "controller_logging" in CONFIG:
         level = getattr(logging, CONFIG["controller_logging"])
