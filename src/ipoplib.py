@@ -286,14 +286,14 @@ class UdpServer(object):
 
     def inter_controller_conn(self):
 
-        #self.cc_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        self.cc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.cc_sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+        #self.cc_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         while True:
             try:
                 time.sleep(3)
-                #self.cc_sock.bind((gen_ip6(self.uid), CONFIG["icc_port"]))
-                self.cc_sock.bind((self.ip4, CONFIG["icc_port"]))
+                self.cc_sock.bind((gen_ip6(self.uid), CONFIG["icc_port"]))
+                #self.cc_sock.bind((self.ip4, CONFIG["icc_port"]))
             except Exception as e:
                 logging.debug("Wait till ipop tap up")
                 continue

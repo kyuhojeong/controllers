@@ -243,21 +243,28 @@ class GvpnUdpServer(UdpServer):
                             continue #Ignore Multicast DNS
                         if msg["src_port"] == 30000:
                             continue #Ignore ICC packet 
+                        if msg["nw_proto"] == 17:
+                            continue # Let's ignore UDP for the time being
                         #ryu_msg = {}
                         #ryu_msg["type"] = "packet_notify"
                         #ryu_msg["protocol"] = msg["data"].split(',')[0]
                         #msg["remote_ipop_ipv4"] = REMOTE_IPOP_IPv4
-                        random_port = random.randint(49125, 65535)
+                        src_random_port = random.randint(49125, 65535)
+                        dst_random_port = random.randint(49125, 65535)
                         msg["remote_host_ipv4"] = REMOTE_HOST_IPv4
-                        msg["random_port"] = random_port 
+                        msg["src_random_port"] = src_random_port 
+                        msg["dst_random_port"] = dst_random_port
                         #ryu_msg["src_mac"] = msg["src_mac"]
                         #ryu_msg["dst_mac"] = msg["data"].split(',')[2]
                         #ryu_msg["src_ipv4"] = msg["data"].split(',')[3] 
                         #ryu_msg["dst_ipv4"] = msg["data"].split(',')[4]
                         logging.debug("Try sending message to {0}".format(REMOTE_IPOP_IPv4))
                         logging.debug("Try sending message to {0}".format(REMOTE_IPOP_IPv6))
-                        ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv4, 30000))
-                        time.sleep(5)
+                        #msg["type"] = "packet_notify_remote"
+                        #ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv4, 30001))
+                        ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv6, 30002))
+                        #time.sleep(5)
+                        #msg["type"] = "packet_notify_local"
                         ret0 = self.sock.sendto(json.dumps(msg),("::1", 30001))
                         logging.debug("Sent {0} {1} byte".format(ret0, ret1))
                    
@@ -302,21 +309,21 @@ class GvpnUdpServer(UdpServer):
                 data, addr = sock.recvfrom(CONFIG["buf_size"])
                 msg = json.loads(data) 
                 logging.debug("recv from icc %s %s" % (addr, data))
-                msg_type = msg.get("type", None)
-                protocol = msg["protocol"] 
-                guest_transport=str(msg["dst_ipv4"]) + ":" + str(msg["dst_port"])
-                dport = msg["random_port"]
-                if msg_type == "packet_notify":
-                    p=subprocess.Popen(["iptables", "-t", "nat", "-L", "PREROUTING"], stdout=subprocess.PIPE)
-                    pp=p.communicate()
-                    ppp = pp[0].split("\n")
-                    if len(ppp) > 10:
-                        continue
-                    p=subprocess.Popen(["iptables", "-t", "nat", "-A", 
-                      "PREROUTING", "-i", "eth0", "-p", protocol, "--dport", 
-                      str(dport), "-j", "DNAT", "--to", guest_transport], 
-                      stdout=subprocess.PIPE)
-                    logging.debug("port forwarding rule is added")
+                #msg_type = msg.get("type", None)
+                #protocol = msg["protocol"] 
+                #guest_transport=str(msg["dst_ipv4"]) + ":" + str(msg["dst_port"])
+                #dport = msg["random_port"]
+                #if msg_type == "packet_notify":
+                #    p=subprocess.Popen(["iptables", "-t", "nat", "-L", "PREROUTING"], stdout=subprocess.PIPE)
+                #    pp=p.communicate()
+                #    ppp = pp[0].split("\n")
+                #    if len(ppp) > 10:
+                #        continue
+                #    p=subprocess.Popen(["iptables", "-t", "nat", "-A", 
+                #      "PREROUTING", "-i", "eth0", "-p", protocol, "--dport", 
+                #      str(dport), "-j", "DNAT", "--to", guest_transport], 
+                #      stdout=subprocess.PIPE)
+                #    logging.debug("port forwarding rule is added")
                 #self.icc_packet_handle(addr, data)
                 
             else:
