@@ -258,11 +258,12 @@ class GvpnUdpServer(UdpServer):
                         #ryu_msg["dst_mac"] = msg["data"].split(',')[2]
                         #ryu_msg["src_ipv4"] = msg["data"].split(',')[3] 
                         #ryu_msg["dst_ipv4"] = msg["data"].split(',')[4]
-                        logging.debug("Try sending message to {0}".format(REMOTE_IPOP_IPv4))
+                        #logging.debug("Try sending message to {0}".format(REMOTE_IPOP_IPv4))
+                        logging.debug("Try sending message to {0}".format("::1 / 30001"))
                         logging.debug("Try sending message to {0}".format(REMOTE_IPOP_IPv6))
                         #msg["type"] = "packet_notify_remote"
-                        #ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv4, 30001))
-                        ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv6, 30002))
+                        ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv4, 30002))
+                        #ret1 = self.cc_sock.sendto(json.dumps(msg), (REMOTE_IPOP_IPv6, 30002))
                         #time.sleep(5)
                         #msg["type"] = "packet_notify_local"
                         ret0 = self.sock.sendto(json.dumps(msg),("::1", 30001))
