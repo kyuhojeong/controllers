@@ -260,6 +260,7 @@ class Controller(il.UdpServer):
                         src_random_port = random.randint(49125, 65535)
                         dst_random_port = random.randint(49125, 65535)
                         msg["src_host_ipv4"] = REMOTE_HOST_IPv4
+                        msg["local_host_ipv4"] = LOCAL_HOST_IPv4
                         msg["remote_host_ipv4"] = REMOTE_HOST_IPv4
                         msg["src_random_port"] = src_random_port
                         msg["dst_random_port"] = dst_random_port
